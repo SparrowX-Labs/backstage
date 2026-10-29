@@ -50,6 +50,7 @@ readinessProbe:
   initialDelaySeconds: 30
 startupProbe:
   enabled: true
+  path: /.backstage/health/v1/liveness
   initialDelaySeconds: 30
 
 container:
