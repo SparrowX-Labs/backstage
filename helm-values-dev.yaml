@@ -7,8 +7,10 @@ replicaCount: 1
 
 appPort: 7007
 # extraAnnotations:
-extraLabels:
-  backstage.io/kubernetes-id: backstage
+# extraLabels:
+
+rbac:
+  create: true
 
 resources:
   size: medium
@@ -42,10 +44,13 @@ probePath: /.backstage/health/v1/readiness
 livenessProbe:
   enabled: true
   path: /.backstage/health/v1/liveness
+  initialDelaySeconds: 60
 readinessProbe:
   enabled: true
+  initialDelaySeconds: 30
 startupProbe:
   enabled: true
+  initialDelaySeconds: 30
 
 container:
   env:

@@ -19,7 +19,7 @@ backend:
     connection:
       host: ${DB_HOST}
       port: ${DB_PORT}
-      user: ${DB_USER}
+      user: ${DB_USERNAME}
       password: ${DB_PASSWORD}
       # https://node-postgres.com/features/ssl
       # you can set the sslmode configuration option via the `PGSSLMODE` environment variable
