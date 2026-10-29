@@ -1,0 +1,43 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**'
+      - '!**/*.md'
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+
+jobs:
+  pre-build:
+    name: Pre-Build
+    uses: SparrowX-Labs/workflows-templates/.github/workflows/pre-build.yaml@v2.0.0
+    with:
+      env-params-file: helm-values-dev.yaml
+
+  build:
+    name: Build
+    needs: pre-build
+    if: needs.pre-build.outputs.build-needed == 'true'
+    uses: SparrowX-Labs/workflows-templates/.github/workflows/build.yaml@v2.0.0
+    with:
+      env-params-file: helm-values-dev.yaml
+      authoritative-build: true
+
+  #Promote Image to Dev Candidate
+  promote-image:
+    name: Promote Image
+    needs: build
+    uses: SparrowX-Labs/workflows-templates/.github/workflows/promote-image.yaml@v2.0.0
+    with:
+      env-params-file: helm-values-dev.yaml
+      origin-image-tag: "git-sha"
+      new-image-tag: "dev-candidate"

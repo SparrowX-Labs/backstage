@@ -1,0 +1,59 @@
+projectName: sparrowx
+environment: dev
+
+serviceName: backstage
+
+replicaCount: 1
+
+appPort: 7007
+# extraAnnotations:
+extraLabels:
+  backstage.io/kubernetes-id: backstage
+
+resources:
+  size: medium
+
+database:
+  enabled: true
+  name: backstage
+  engine: postgres
+  port: 5432
+  host: backstage-postgres.dev.sparrowx.internal
+
+ingress:
+  enabled: true
+  className: alb
+  host: backstage.dev.mo2cloud.com
+  name: backstage
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: backstage.dev.mo2cloud.com
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: internal-alb
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+
+
+servicemonitor:
+  enabled: true
+
+probePath: /health
+livenessProbe:
+  enabled: true
+readinessProbe:
+  enabled: true
+startupProbe:
+  enabled: true
+
+container:
+  env:
+    - name: APP_BASE_URL
+      value: https://backstage.dev.mo2cloud.com
+    - name: APP_PORT
+      value: "7007"
+    - name: GITHUB_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: backstage-secrets
+          key: GITHUB_TOKEN

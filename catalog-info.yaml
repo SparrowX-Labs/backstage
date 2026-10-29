@@ -1,0 +1,19 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: backstage
+  description: SparrowX Internal Developer Platform Powered By Backstage
+  annotations:
+    backstage.io/kubernetes-id: backstage
+  tags:
+    - backstage
+    - idp
+    - dev
+  links:
+    - url: https://backstage.dev.mo2cloud.com/
+      title: Backstage Dashboard
+      icon: dashboard
+spec:
+  type: service
+  lifecycle: experimental
+  owner: guests

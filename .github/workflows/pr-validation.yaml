@@ -1,0 +1,29 @@
+name: PR Validations Pipeline
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - main
+    paths:
+      - '**'
+      - '!**/*.md'
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+
+jobs:
+  build:
+    name: Build
+    uses: SparrowX-Labs/workflows-templates/.github/workflows/build.yaml@v2.0.0
+    with:
+      env-params-file: helm-values-dev.yaml
+      authoritative-build: false
