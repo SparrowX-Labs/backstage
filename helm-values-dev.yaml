@@ -38,9 +38,10 @@ ingress:
 servicemonitor:
   enabled: true
 
-probePath: /health
+probePath: /.backstage/health/v1/readiness
 livenessProbe:
   enabled: true
+  path: /.backstage/health/v1/liveness
 readinessProbe:
   enabled: true
 startupProbe:

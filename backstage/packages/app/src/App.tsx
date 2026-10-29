@@ -37,8 +37,6 @@ import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 // import { microsoftAuthApiRef } from '@backstage/core-plugin-api';
 
-const env = process.env.NODE_ENV || 'development';
-
 const app = createApp({
   apis,
   bindRoutes({ bind }) {

@@ -8,11 +8,6 @@
 
 import { createBackend } from '@backstage/backend-defaults';
 
-import {
-  gitlabPlugin,
-  catalogPluginGitlabFillerProcessorModule,
-} from '@immobiliarelabs/backstage-plugin-gitlab-backend';
-
 const backend = createBackend();
 
 backend.add(import('@backstage/plugin-app-backend'));

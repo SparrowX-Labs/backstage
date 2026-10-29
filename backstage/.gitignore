@@ -25,6 +25,7 @@ node_modules/
 
 # Node version directives
 .nvmrc
+!.nvmrc
 
 # dotenv environment variables file
 .env
