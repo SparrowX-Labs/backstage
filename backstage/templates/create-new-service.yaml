@@ -1,0 +1,375 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-new-service
+  title: Create New Service
+  description: Create a Python backend API or Node.js frontend service with Kubernetes deployment, GitHub Actions, and GitOps configuration.
+  tags:
+    - service
+    - api
+    - frontend
+    - backend
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+spec:
+  owner: group:platform-team
+  type: service
+
+  parameters:
+    - title: Service type
+      description: Choose whether this service is a backend API or a frontend application.
+      required:
+        - runtime
+      properties:
+        runtime:
+          title: Service type
+          type: string
+          enum:
+            - python
+            - node
+          enumNames:
+            - Backend API (Python)
+            - Frontend application (Node.js)
+          default: python
+
+    - title: Repository and environments
+      description: Choose whether to create a new service repository and which environments to provision.
+      required:
+        - createRepository
+        - serviceName
+      properties:
+        createRepository:
+          title: Create a new GitHub repository?
+          type: boolean
+          default: true
+          description: Disable this only for a new repository that does not already contain deployment workflows.
+        serviceName:
+          title: Service name
+          type: string
+          description: Lowercase Kubernetes and repository name; use letters, numbers, and hyphens.
+          pattern: '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+          minLength: 3
+          maxLength: 40
+          ui:autofocus: true
+          ui:options:
+            rows: 1
+        githubOwner:
+          title: GitHub owner
+          type: string
+          default: SparrowX-Labs
+          description: The GitHub organization or user that owns the new repository. This is required so the automation knows where to create it.
+        repositoryUrl:
+          title: Existing repository URL
+          type: string
+          format: uri
+          description: Required only when creating a repository is disabled.
+      dependencies:
+        createRepository:
+          oneOf:
+            - properties:
+                createRepository:
+                  const: true
+            - properties:
+                createRepository:
+                  const: false
+              required:
+                - repositoryUrl
+
+    - title: Application configuration
+      required:
+        - containerPort
+        - baseImage
+        - apiPath
+        - devHostname
+        - externalHealthPath
+        - internalHealthPath
+      properties:
+        containerPort:
+          title: Application port
+          type: integer
+          minimum: 1
+          maximum: 65535
+          default: 8000
+          description: Port listened to by the application container.
+        baseImage:
+          title: Base image
+          type: string
+          enum:
+            - python:3.12-slim
+            - python:3.13-slim
+            - node:20-alpine
+            - node:22-alpine
+            - node:22-bookworm-slim
+          default: python:3.12-slim
+        apiPath:
+          title: Public API path
+          type: string
+          default: /api/customers
+          pattern: '^/api/[a-z0-9][a-z0-9/-]*[a-z0-9]$'
+          description: Must start with /api and must not end with a slash.
+        devHostname:
+          title: Development hostname
+          type: string
+          default: sparrowx.dev.mo2cloud.com
+          pattern: '^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$'
+        externalHealthPath:
+          title: External health-check path
+          type: string
+          default: /api/customers/health
+          pattern: '^/[^ ]*$'
+          description: Public path used by smoke tests and API tests.
+        internalHealthPath:
+          title: Internal health-check path
+          type: string
+          default: /health
+          pattern: '^/[^ ]*$'
+          description: Pod path used by Kubernetes probes.
+
+    - title: Database configuration
+      required:
+        - databaseEnabled
+        - databaseEngine
+      properties:
+        databaseEnabled:
+          title: Create a PostgreSQL database?
+          type: boolean
+          default: false
+        databaseEngine:
+          title: Database engine
+          type: string
+          enum:
+            - postgres
+          default: postgres
+        multiAzEnabled:
+          title: Enable multi-AZ database in production?
+          type: boolean
+          default: true
+        databaseName:
+          title: Database name
+          type: string
+          description: Leave empty to derive the name from the service name. PostgreSQL names use the first service-name segment plus -db.
+          pattern: '^$|^[a-z][a-z0-9-]{0,62}$'
+        databaseVersion:
+          title: PostgreSQL version
+          type: string
+          enum:
+            - '16'
+          default: '16'
+        databaseSizeDev:
+          title: Development database size
+          type: string
+          enum: [small, medium, large, xlarge]
+          default: small
+          enumNames: [Small, Medium, Large, X-Large]
+        databaseStorageDev:
+          title: Development database storage (GiB)
+          type: integer
+          minimum: 20
+          default: 20
+        databaseSizeProd:
+          title: Production database size
+          type: string
+          enum: [small, medium, large, xlarge]
+          default: medium
+          enumNames: [Small, Medium, Large, X-Large]
+        databaseStorageProd:
+          title: Production database storage (GiB)
+          type: integer
+          minimum: 20
+          default: 20
+      dependencies:
+        databaseEnabled:
+          oneOf:
+            - properties:
+                databaseEnabled:
+                  const: false
+            - properties:
+                databaseEnabled:
+                  const: true
+              required:
+                - databaseVersion
+                - databaseSizeDev
+                - databaseStorageDev
+
+    - title: Object storage configuration
+      required:
+        - objectStorageEnabled
+      properties:
+        objectStorageEnabled:
+          title: Create an S3 bucket?
+          type: boolean
+          default: false
+        objectStorageName:
+          title: S3 bucket name
+          type: string
+          description: Must be globally unique; leave empty when object storage is disabled.
+          pattern: '^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$'
+      dependencies:
+        objectStorageEnabled:
+          oneOf:
+            - properties:
+                objectStorageEnabled:
+                  const: false
+            - properties:
+                objectStorageEnabled:
+                  const: true
+              required:
+                - objectStorageName
+
+    - title: Development Kubernetes configuration
+      required:
+        - replicaCountDev
+        - podSizeDev
+        - enableProbesDev
+        - enableServiceMonitorDev
+      properties:
+        replicaCountDev:
+          title: Development replicas
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 1
+        podSizeDev:
+          title: Development pod size
+          type: string
+          enum: [micro, small, medium, large, xlarge]
+          default: medium
+          enumNames: [Micro, Small, Medium, Large, X-Large]
+        enableProbesDev:
+          title: Enable development probes?
+          type: boolean
+          default: true
+        enableServiceMonitorDev:
+          title: Enable development Prometheus ServiceMonitor?
+          type: boolean
+          default: true
+
+    - title: Production Kubernetes configuration
+      required:
+        - prodRequired
+      dependencies:
+        prodRequired:
+          oneOf:
+            - properties:
+                prodRequired:
+                  const: false
+            - properties:
+                prodRequired:
+                  const: true
+                prodHostname:
+                  title: Production hostname
+                  type: string
+                  default: sparrowx.prod.mo2cloud.com
+                  pattern: '^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$'
+              required:
+                - prodHostname
+                - replicaCountProd
+                - podSizeProd
+                - enableProbesProd
+                - enableServiceMonitorProd
+      properties:
+        prodRequired:
+          title: Provision production as well?
+          type: boolean
+          default: false
+          description: Development is always provisioned; production adds prod infrastructure, GitOps, and deployment files.
+        replicaCountProd:
+          title: Production replicas
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 2
+        podSizeProd:
+          title: Production pod size
+          type: string
+          enum: [micro, small, medium, large, xlarge]
+          default: medium
+          enumNames: [Micro, Small, Medium, Large, X-Large]
+        enableProbesProd:
+          title: Enable production probes?
+          type: boolean
+          default: true
+        enableServiceMonitorProd:
+          title: Enable production Prometheus ServiceMonitor?
+          type: boolean
+          default: true
+
+  steps:
+    - id: create-new-service
+      name: Provision Service
+      action: http:backstage:request
+      input:
+        method: POST
+        path: /proxy/backstage-pyactions/create-new-service
+        headers:
+          Content-Type: application/json
+          X-Request-Source: Backstage
+        body: |
+          {
+            "create-repository": ${{ parameters.createRepository }},
+            "service-name": "${{ parameters.serviceName }}",
+            "github-owner": "${{ parameters.githubOwner }}",
+            "repository-url": "${{ parameters.repositoryUrl | default('') }}",
+            "prod-required": ${{ parameters.prodRequired }},
+            "runtime": "${{ parameters.runtime }}",
+            "base-image": "${{ parameters.baseImage }}",
+            "container-port": ${{ parameters.containerPort }},
+            "api-path": "${{ parameters.apiPath }}",
+            "dev-hostname": "${{ parameters.devHostname }}",
+            "prod-hostname": "${{ parameters.prodHostname | default('') }}",
+            "external-health-path": "${{ parameters.externalHealthPath }}",
+            "internal-health-path": "${{ parameters.internalHealthPath }}",
+            "database-enabled": ${{ parameters.databaseEnabled }},
+            "database-engine": "${{ parameters.databaseEngine }}",
+            "multi-az-enabled": ${{ parameters.multiAzEnabled | default(true) }},
+            "database-name": "${{ parameters.databaseName | default('') }}",
+            "database-version": "${{ parameters.databaseVersion | default('16') }}",
+            "database-size-dev": "${{ parameters.databaseSizeDev | default('small') }}",
+            "database-storage-dev": ${{ parameters.databaseStorageDev | default(20) }},
+            "database-size-prod": "${{ parameters.databaseSizeProd | default('medium') }}",
+            "database-storage-prod": ${{ parameters.databaseStorageProd | default(20) }},
+            "object-storage-enabled": ${{ parameters.objectStorageEnabled }},
+            "object-storage-name": "${{ parameters.objectStorageName | default('') }}",
+            "replica-count-dev": ${{ parameters.replicaCountDev }},
+            "pod-size-dev": "${{ parameters.podSizeDev }}",
+            "enable-probes-dev": ${{ parameters.enableProbesDev }},
+            "enable-service-monitor-dev": ${{ parameters.enableServiceMonitorDev }},
+            "replica-count-prod": ${{ parameters.replicaCountProd | default(0) }},
+            "pod-size-prod": "${{ parameters.podSizeProd | default('') }}",
+            "enable-probes-prod": ${{ parameters.enableProbesProd | default(false) }},
+            "enable-service-monitor-prod": ${{ parameters.enableServiceMonitorProd | default(false) }}
+          }
+
+    - id: report-result
+      name: Report provisioning result
+      action: debug:log
+      input:
+        message: |
+          Status: ${{ steps['create-new-service'].output.body.status }}
+          Errors: ${{ steps['create-new-service'].output.body.errors }}
+          Logs: ${{ steps['create-new-service'].output.body.logs }}
+          Pull requests:
+          ${{ steps['create-new-service'].output.body.merge_request_urls }}
+
+  output:
+    text:
+      - title: Provisioning status
+        content: |
+          Status: ${{ steps['create-new-service'].output.body.status }}
+
+          ${{ steps['create-new-service'].output.body.logs }}
+      - title: Errors
+        content: ${{ steps['create-new-service'].output.body.errors }}
+    links:
+      - title: Service repository pull request
+        url: ${{ steps['create-new-service'].output.body.merge_request_urls[3] }}
+        icon: github
+      - title: Crossplane pull request
+        url: ${{ steps['create-new-service'].output.body.merge_request_urls[0] }}
+        icon: github
+      - title: Argo CD applications pull request
+        url: ${{ steps['create-new-service'].output.body.merge_request_urls[1] }}
+        icon: github
+      - title: Gateway API pull request
+        url: ${{ steps['create-new-service'].output.body.merge_request_urls[2] }}
+        icon: github

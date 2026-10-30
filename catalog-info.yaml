@@ -5,6 +5,7 @@ metadata:
   description: SparrowX Internal Developer Platform Powered By Backstage
   annotations:
     backstage.io/kubernetes-id: backstage
+    github.com/project-slug: SparrowX-Labs/backstage
   tags:
     - backstage
     - idp
