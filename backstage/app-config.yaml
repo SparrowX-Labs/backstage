@@ -133,6 +133,11 @@ catalog:
       target: ../../templates/3.yaml
       rules:
         - allow: [Template]
+
+    - type: file
+      target: ../../templates/create-new-service.yaml
+      rules:
+        - allow: [Template]
     
 
     ## Uncomment these lines to add more example data
