@@ -28,14 +28,13 @@ ingress:
   host: backstage.dev.mo2cloud.com
   name: backstage
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: backstage.dev.mo2cloud.com
-    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/group.name: internal-alb
+    alb.ingress.kubernetes.io/group.name: backstage
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/ssl-redirect: "443"
     alb.ingress.kubernetes.io/backend-protocol: HTTP
-
+  # alb.ingress.kubernetes.io/certificate-arn: {{ requiredEnv "ACM_CERTIFICATE_ARN" | quote }}
 
 servicemonitor:
   enabled: true
